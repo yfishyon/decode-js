@@ -1,0 +1,50 @@
+name: decode js
+
+on:
+  workflow_dispatch:
+    inputs:
+      js_url:
+        description: "Remote js url"
+        required: true
+        type: string
+      decode_type:
+        description: "Decoding type"
+        required: false
+        default: "common"
+        type: choice
+        options:
+          - common
+          - jjencode
+          - sojson
+          - sojsonv7
+          - obfuscator
+
+jobs:
+  decode-js:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Download js file
+      run: |
+        curl -L ${{ github.event.inputs.js_url }} -o input.js
+
+    - name: Decode js
+      run: |
+        npm run decode -- -t ${{ github.event.inputs.decode_type }} -i input.js -o output.js
+
+    - name: Upload decoded JavaScript
+      uses: actions/upload-artifact@v3
+      with:
+        name: decoded-js-output
+        path: output.js
