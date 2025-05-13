@@ -44,7 +44,7 @@ jobs:
         npm run decode -- -t ${{ github.event.inputs.decode_type }} -i input.js -o output.js
 
     - name: Upload decoded JavaScript
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: decoded-js-output
         path: output.js
