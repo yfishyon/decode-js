@@ -3,8 +3,8 @@ name: decode js
 on:
   workflow_dispatch:
     inputs:
-      js_url:
-        description: "Remote js url"
+      js_urls:
+        description: "Comma-separated remote JS URLs (max 5)"
         required: true
         type: string
       decode_type:
@@ -18,6 +18,7 @@ on:
           - sojson
           - sojsonv7
           - obfuscator
+          - 全部
 
 jobs:
   decode-js:
@@ -35,16 +36,40 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Download js file
-      run: |
-        curl -L ${{ github.event.inputs.js_url }} -o input.js
+    - name: Create input directory
+      run: mkdir -p inputs outputs
 
-    - name: Decode js
+    - name: Download JS files
       run: |
-        npm run decode -- -t ${{ github.event.inputs.decode_type }} -i input.js -o output.js
+        IFS=',' read -ra URLS <<< "${{ github.event.inputs.js_urls }}"
+        i=1
+        for url in "${URLS[@]}"; do
+          if [ $i -le 5 ]; then
+            curl -L "$url" -o "inputs/input${i}.js"
+            i=$((i+1))
+          fi
+        done
 
-    - name: Upload decoded JavaScript
+    - name: Decode JS files
+      run: |
+        decode_type="${{ github.event.inputs.decode_type }}"
+        for file in inputs/*.js; do
+          filename=$(basename "$file" .js)
+          if [ "$decode_type" = "all" ]; then
+            for type in common jjencode sojson sojsonv7 obfuscator; do
+              output="outputs/${filename}-${type}.js"
+              npm run decode -- -t "$type" -i "$file" -o "$output" || echo "Failed $type on $file"
+            done
+          else
+            output="outputs/${filename}.js"
+            npm run decode -- -t "$decode_type" -i "$file" -o "$output" || echo "Failed $decode_type on $file"
+          fi
+        done
+
+    - name: Upload all decoded JavaScript and inputs
       uses: actions/upload-artifact@v4
       with:
         name: decoded-js-output
-        path: output.js
+        path: |
+          outputs/
+          inputs/
