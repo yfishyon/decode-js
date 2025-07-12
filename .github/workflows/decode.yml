@@ -1,0 +1,75 @@
+name: decode js
+
+on:
+  workflow_dispatch:
+    inputs:
+      js_urls:
+        description: "Comma-separated remote JS URLs (max 5)"
+        required: true
+        type: string
+      decode_type:
+        description: "Decoding type"
+        required: false
+        default: "common"
+        type: choice
+        options:
+          - common
+          - jjencode
+          - sojson
+          - sojsonv7
+          - obfuscator
+          - all
+
+jobs:
+  decode-js:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Create input directory
+      run: mkdir -p inputs outputs
+
+    - name: Download JS files
+      run: |
+        IFS=',' read -ra URLS <<< "${{ github.event.inputs.js_urls }}"
+        i=1
+        for url in "${URLS[@]}"; do
+          if [ $i -le 5 ]; then
+            curl -L "$url" -o "inputs/input${i}.js"
+            i=$((i+1))
+          fi
+        done
+
+    - name: Decode JS files
+      run: |
+        decode_type="${{ github.event.inputs.decode_type }}"
+        for file in inputs/*.js; do
+          filename=$(basename "$file" .js)
+          if [ "$decode_type" = "all" ]; then
+            for type in common jjencode sojson sojsonv7 obfuscator; do
+              output="outputs/${filename}-${type}.js"
+              npm run decode -- -t "$type" -i "$file" -o "$output" || echo "Failed $type on $file"
+            done
+          else
+            output="outputs/${filename}.js"
+            npm run decode -- -t "$decode_type" -i "$file" -o "$output" || echo "Failed $decode_type on $file"
+          fi
+        done
+
+    - name: Upload all decoded JavaScript and inputs
+      uses: actions/upload-artifact@v4
+      with:
+        name: decoded-js-output
+        path: |
+          outputs/
+          inputs/
