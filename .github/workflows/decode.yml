@@ -18,7 +18,7 @@ on:
           - sojson
           - sojsonv7
           - obfuscator
-          - all
+          - 全部
 
 jobs:
   decode-js:
@@ -43,12 +43,14 @@ jobs:
       run: |
         IFS=',' read -ra URLS <<< "${{ github.event.inputs.js_urls }}"
         i=1
+        UA="Mozilla/5.0 (Linux; Android 13; 22021211RC Build/TKQ1.220807.001) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.157 Mobile Safari/537.36"
         for url in "${URLS[@]}"; do
           if [ $i -le 5 ]; then
-            curl -L "$url" -o "inputs/input${i}.js"
+            curl -A "$UA" -L "$url" -o "inputs/input${i}.js"
             i=$((i+1))
           fi
         done
+
 
     - name: Decode JS files
       run: |
