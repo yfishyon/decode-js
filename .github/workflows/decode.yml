@@ -18,7 +18,7 @@ on:
           - sojson
           - sojsonv7
           - obfuscator
-          - 全部
+          - all
 
 jobs:
   decode-js:
