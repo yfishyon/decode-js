@@ -57,7 +57,7 @@ jobs:
         decode_type="${{ github.event.inputs.decode_type }}"
         for file in inputs/*.js; do
           filename=$(basename "$file" .js)
-          if [ "$decode_type" = "all" ]; then
+          if [ "$decode_type" = "全部" ]; then
             for type in common jjencode sojson sojsonv7 obfuscator; do
               output="outputs/${filename}-${type}.js"
               npm run decode -- -t "$type" -i "$file" -o "$output" || echo "Failed $type on $file"
