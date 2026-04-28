@@ -158,7 +158,7 @@ function decodeGlobal(ast) {
         while (node_table.getFunctionParent()) {
           node_table = node_table.getFunctionParent()
         }
-        let var_string_table = null
+        let var_string_table
         if (node_table.node.id) {
           var_string_table = node_table.node.id.name
         } else {
@@ -343,11 +343,15 @@ function decodeGlobal(ast) {
         })
       } else if (ref.key === 'right') {
         // AssignmentExpression
+        // issue #165
+        const code = 'var ' + parent
+        parent.replaceWith(parent.node.left)
         refs_next.push({
-          name: parent.node.left.name,
+          name: parent.node.name,
           path: parent,
-          code: 'var ' + parent,
+          code: code,
         })
+        parent.scope.crawl()
       } else if (ref.key === 'object') {
         // MemberExpression
         memToStr(parent)
@@ -362,8 +366,14 @@ function decodeGlobal(ast) {
       dfs(stk, ref)
     }
     scope.crawl()
-    item.path.remove()
-    scope.crawl()
+    let skip = false
+    if (item.path.parentPath.isStringLiteral()) {
+      skip = true
+    }
+    if (!skip) {
+      item.path.remove()
+      scope.crawl()
+    }
     console.log(`Exit sub ${stk.length}:${cur_val}`)
     stk.pop()
   }
@@ -754,7 +764,7 @@ export default function (code) {
     generator(ast, {
       comments: false,
       jsescOption: { minimal: true },
-    }).code
+    }).code,
   )
   console.log('提高代码可读性...')
   purifyCode(ast)
